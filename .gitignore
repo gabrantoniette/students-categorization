@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Variáveis de ambiente (nunca versione segredos)
+.env
+.env.*
+!.env.example
+
+# Ambiente virtual Python
+.venv/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
