@@ -1,0 +1,36 @@
+{
+  "name": "students-categorization",
+  "version": "0.0.1",
+  "description": "Rede neural em JavaScript com TensorFlow.js para categorizar alunos nos perfis premium, medium e basic a partir de idade, cor favorita e localização.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabrantoniette/students-categorization.git"
+  },
+  "keywords": [
+    "machine-learning",
+    "neural-network",
+    "tensorflow",
+    "tensorflowjs",
+    "classification",
+    "one-hot-encoding"
+  ],
+  "author": "Gabriel Antoniette (https://github.com/gabrantoniette)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gabrantoniette/students-categorization/issues"
+  },
+  "homepage": "https://github.com/gabrantoniette/students-categorization#readme",
+  "dependencies": {
+    "@tensorflow/tfjs-node": "4.22"
+  },
+  "allowScripts": {
+    "@tensorflow/tfjs-node@4.22.0": true,
+    "core-js": false
+  }
+}
