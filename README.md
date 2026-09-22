@@ -1,60 +1,63 @@
 # Students Categorization
 
+[![CI](https://github.com/gabrantoniette/students-categorization/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrantoniette/students-categorization/actions/workflows/ci.yml)
 ![Node.js](https://img.shields.io/badge/Node.js-18.11%2B-339933?logo=nodedotjs&logoColor=white)
 ![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.22-FF6F00?logo=tensorflow&logoColor=white)
-![Licença](https://img.shields.io/badge/licen%C3%A7a-ISC-blue)
+![License](https://img.shields.io/badge/license-ISC-blue)
 
-Rede neural em JavaScript que categoriza alunos nos perfis **premium**, **medium** e **basic** a partir de idade, cor favorita e localização, construída com [TensorFlow.js](https://www.tensorflow.org/js) no Node.js.
+A JavaScript neural network that categorizes students into **premium**, **medium** and **basic** profiles based on age, favorite color and location, built with [TensorFlow.js](https://www.tensorflow.org/js) on Node.js.
 
-## Sobre o projeto
+## About the project
 
-O **Students Categorization** é um projeto de estudos de Machine Learning com JavaScript. A proposta é percorrer, passo a passo, o caminho completo de um problema de classificação: transformar dados do mundo real em números que uma rede neural consegue entender, treinar um modelo com esses dados e usá-lo para prever em qual categoria um novo aluno se encaixa.
+**Students Categorization** is a study project on Machine Learning with JavaScript. The goal is to walk, step by step, through the full path of a classification problem: turning real-world data into numbers a neural network can understand, training a model with that data and using it to predict which category a new student fits into.
 
-Tudo roda localmente com o [`@tensorflow/tfjs-node`](https://www.npmjs.com/package/@tensorflow/tfjs-node), que executa as operações com tensores na biblioteca nativa do TensorFlow, diretamente no Node.js.
+Everything runs locally with [`@tensorflow/tfjs-node`](https://www.npmjs.com/package/@tensorflow/tfjs-node), which runs tensor operations on TensorFlow's native library, directly in Node.js.
 
-> **Status:** em desenvolvimento. A etapa atual cobre a preparação dos dados e a criação dos tensores de entrada e saída do modelo. Veja o [roadmap](#roadmap).
+> **Status:** in development. The current stage covers data preparation and the creation of the model's input and output tensors. See the [roadmap](#roadmap).
 
-## Como funciona
+## How it works
 
-### Dados de exemplo
+### Sample data
 
-| Nome   | Idade | Cor favorita | Localização | Categoria |
-| ------ | ----: | ------------ | ----------- | --------- |
-| Erick  |    30 | azul         | São Paulo   | premium   |
-| Ana    |    25 | vermelho     | Rio         | medium    |
-| Carlos |    40 | verde        | Curitiba    | basic     |
+| Name   | Age | Favorite color | Location  | Category |
+| ------ | --: | -------------- | --------- | -------- |
+| Erick  |  30 | blue           | São Paulo | premium  |
+| Ana    |  25 | red            | Rio       | medium   |
+| Carlos |  40 | green          | Curitiba  | basic    |
 
-### Pré-processamento
+### Preprocessing
 
-Redes neurais só trabalham com números, então cada aluno é convertido em um vetor numérico:
+Neural networks only work with numbers, so each student is converted into a numeric vector:
 
-- **Idade:** normalizada entre 0 e 1 com min-max, `(idade - idade_mínima) / (idade_máxima - idade_mínima)`. Com idades entre 25 e 40, a idade de Erick vira `(30 - 25) / (40 - 25) ≈ 0.33`.
-- **Cor favorita e localização:** convertidas com one-hot encoding. Cada valor possível ganha uma posição no vetor, que recebe `1` quando o aluno tem aquele valor e `0` nas demais.
-- **Categoria (label):** também em one-hot encoding, na ordem `[premium, medium, basic]`.
+- **Age:** normalized between 0 and 1 with min-max scaling, `(age - min_age) / (max_age - min_age)`. With ages between 25 and 40, Erick's age becomes `(30 - 25) / (40 - 25) ≈ 0.33`.
+- **Favorite color and location:** converted with one-hot encoding. Each possible value gets a position in the vector, which is set to `1` when the student has that value and `0` otherwise.
+- **Category (label):** also one-hot encoded, in the order `[premium, medium, basic]`.
 
-Cada vetor de entrada segue a ordem `[idade_normalizada, azul, vermelho, verde, São Paulo, Rio, Curitiba]`:
+Each input vector follows the order `[normalized_age, blue, red, green, São Paulo, Rio, Curitiba]`:
 
-| Nome   | Vetor de entrada           | Label       |
+| Name   | Input vector               | Label       |
 | ------ | -------------------------- | ----------- |
 | Erick  | `[0.33, 1, 0, 0, 1, 0, 0]` | `[1, 0, 0]` |
 | Ana    | `[0, 0, 1, 0, 0, 1, 0]`    | `[0, 1, 0]` |
 | Carlos | `[1, 0, 0, 1, 0, 0, 1]`    | `[0, 0, 1]` |
 
-Esses vetores viram tensores 2D com `tf.tensor2d`: `xs` (entrada, formato `[3, 7]`) e `ys` (saída, formato `[3, 3]`), que serão usados no treinamento do modelo.
+These vectors become 2D tensors with `tf.tensor2d`: `xs` (input, shape `[3, 7]`) and `ys` (output, shape `[3, 3]`), which will be used to train the model.
 
-## Tecnologias
+## Technologies
 
 - [Node.js](https://nodejs.org)
-- [TensorFlow.js](https://www.tensorflow.org/js) com [`@tensorflow/tfjs-node`](https://www.npmjs.com/package/@tensorflow/tfjs-node) 4.22
+- [TensorFlow.js](https://www.tensorflow.org/js) with [`@tensorflow/tfjs-node`](https://www.npmjs.com/package/@tensorflow/tfjs-node) 4.22
 
-## Pré-requisitos
+## Prerequisites
 
-- Node.js 18.11 ou superior (o script `start` usa `node --watch`). O projeto é desenvolvido com Node.js 24.
+- Node.js 18.11 or later (the `start` script uses `node --watch`). The project is developed and tested with Node.js 24, the version set in [`.nvmrc`](.nvmrc) (with [nvm](https://github.com/nvm-sh/nvm), run `nvm use`).
 - npm
 
-Durante a instalação, o `@tensorflow/tfjs-node` executa um script que baixa o binário nativo do TensorFlow para o seu sistema operacional. Esse script já está autorizado no campo `allowScripts` do `package.json`, usado pelas versões recentes do npm para controlar quais dependências podem executar scripts de instalação. Se algo der errado nessa etapa, consulte a [documentação do tfjs-node](https://github.com/tensorflow/tfjs/tree/master/tfjs-node).
+During installation, `@tensorflow/tfjs-node` runs a script that downloads the native TensorFlow binary for your operating system. This script is already approved in the `allowScripts` field of `package.json`, which recent versions of npm use to control which dependencies may run install scripts. If something goes wrong at this step, see the [tfjs-node documentation](https://github.com/tensorflow/tfjs/tree/master/tfjs-node).
 
-## Instalação e uso
+The approval is pinned to the installed version, and CI fails when a dependency has an install script that is not approved. After upgrading `@tensorflow/tfjs-node` (for example, in a Dependabot pull request), review the new version and run `npm install-scripts approve @tensorflow/tfjs-node` to update `package.json`.
+
+## Installation and usage
 
 ```bash
 git clone https://github.com/gabrantoniette/students-categorization.git
@@ -62,19 +65,19 @@ cd students-categorization
 npm install
 ```
 
-Para executar em modo watch (o script roda de novo sempre que um arquivo é salvo):
+To run in watch mode (the script runs again every time a file is saved):
 
 ```bash
 npm start
 ```
 
-Para executar uma única vez:
+To run it once:
 
 ```bash
 node index.js
 ```
 
-### Saída esperada
+### Expected output
 
 ```text
 Tensor
@@ -87,42 +90,74 @@ Tensor
      [0, 0, 1]]
 ```
 
-Antes dos tensores, o TensorFlow pode exibir mensagens informativas sobre otimizações de CPU. Elas são normais e não indicam erro.
+Before the tensors, TensorFlow may print informational messages about CPU optimizations. They are normal and do not indicate an error.
 
-## Estrutura do projeto
+### Tests
+
+```bash
+npm test
+```
+
+The tests use the [Node.js test runner](https://nodejs.org/api/test.html): they run `index.js` and check that the input and output tensors above are printed.
+
+## Continuous integration
+
+Every pull request and every push to `main` runs the [CI workflow](.github/workflows/ci.yml) on GitHub Actions:
+
+- **Test:** installs the dependencies from `package-lock.json` (failing if a dependency has an install script that is not approved in `allowScripts`), verifies the npm registry signatures of the installed packages and runs `npm test`.
+- **Dependency review:** fails the pull request if it adds or updates a dependency with a known vulnerability.
+
+[Dependabot](.github/dependabot.yml) opens weekly pull requests to update npm packages and GitHub Actions, and GitHub's CodeQL code scanning looks for security issues in the code.
+
+## Project structure
 
 ```text
 .
-├── index.js           # Dados de exemplo, pré-processamento e criação dos tensores
-├── package.json       # Metadados, scripts e dependências
-├── package-lock.json  # Versões exatas das dependências
+├── .github/
+│   ├── workflows/
+│   │   └── ci.yml     # CI pipeline: install, signature check, tests and dependency review
+│   └── dependabot.yml # Weekly dependency updates
+├── test/
+│   └── index.test.js  # Checks the tensors printed by index.js
+├── index.js           # Sample data, preprocessing and tensor creation
+├── package.json       # Metadata, scripts and dependencies
+├── package-lock.json  # Exact dependency versions
+├── .nvmrc             # Node.js version used in development and CI
 ├── LICENSE
+├── SECURITY.md        # How to report a vulnerability
 └── README.md
 ```
 
 ## Roadmap
 
-- [x] Definir os dados de exemplo
-- [x] Normalizar a idade e aplicar one-hot encoding em cor favorita, localização e categoria
-- [x] Criar os tensores de entrada (`xs`) e saída (`ys`)
-- [ ] Definir a arquitetura da rede neural
-- [ ] Treinar o modelo
-- [ ] Prever a categoria de novos alunos
+- [x] Define the sample data
+- [x] Normalize the age and one-hot encode favorite color, location and category
+- [x] Create the input (`xs`) and output (`ys`) tensors
+- [ ] Define the neural network architecture
+- [ ] Train the model
+- [ ] Predict the category of new students
 
-## Contribuindo
+## Contributing
 
-Este é um projeto de estudos, mas sugestões e melhorias são bem-vindas. Abra uma [issue](https://github.com/gabrantoniette/students-categorization/issues) para relatar um problema ou discutir uma ideia, ou envie um pull request:
+This is a study project, but suggestions and improvements are welcome. Open an [issue](https://github.com/gabrantoniette/students-categorization/issues) to report a problem or discuss an idea, or send a pull request:
 
-1. Faça um fork do repositório
-2. Crie uma branch para a sua alteração: `git checkout -b feat/minha-melhoria`
-3. Faça commit das mudanças: `git commit -m "feat: descreve a melhoria"`
-4. Envie a branch: `git push origin feat/minha-melhoria`
-5. Abra um pull request
+1. Fork the repository
+2. Create a branch for your change: `git checkout -b feat/my-improvement`
+3. Make sure the tests pass: `npm test`
+4. Commit your changes: `git commit -m "feat: describe the improvement"`
+5. Push the branch: `git push origin feat/my-improvement`
+6. Open a pull request
 
-## Licença
+The `main` branch is protected: changes only reach it through pull requests, after the CI checks pass.
 
-Distribuído sob a licença ISC. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+## Security
 
-## Autor
+Please do not report security problems in public issues. See the [security policy](SECURITY.md) to report a vulnerability privately.
 
-Desenvolvido por [Gabriel Antoniette](https://github.com/gabrantoniette).
+## License
+
+Distributed under the ISC License. See the [LICENSE](LICENSE) file for details.
+
+## Author
+
+Developed by [Gabriel Antoniette](https://github.com/gabrantoniette).
