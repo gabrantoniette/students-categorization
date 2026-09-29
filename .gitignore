@@ -14,6 +14,12 @@ npm-debug.log*
 # Python virtual environment
 .venv/
 
+# Local medallion pipeline (bronze, silver and gold layers)
+lakehouse/
+src/bronze/
+src/silver/
+src/gold/
+
 # Operating system
 .DS_Store
 Thumbs.db
@@ -21,3 +27,6 @@ Thumbs.db
 # Editors
 .vscode/
 .idea/
+
+# python cache
+src/__pycache__/
