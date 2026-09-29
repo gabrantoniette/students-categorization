@@ -1,0 +1,74 @@
+{
+  "dataset": "students",
+  "version": "1.0.0",
+  "description": "Students used to train the categorization model, one row per student. Column keys are the headers after normalize_headers.",
+  "format": {
+    "type": "csv",
+    "encoding": "utf-8",
+    "delimiter": ","
+  },
+  "strict_columns": true,
+  "drop_empty_rows": true,
+  "deduplicate": true,
+  "columns": {
+    "name": {
+      "description": "Student full name.",
+      "type": "text",
+      "required": true,
+      "case": "title"
+    },
+    "age": {
+      "description": "Age in whole years.",
+      "type": "int",
+      "required": true,
+      "min": 18,
+      "max": 65
+    },
+    "color": {
+      "description": "Favorite color. The order of allowed is the one-hot encoding order.",
+      "type": "category",
+      "required": true,
+      "allowed": ["blue", "red", "green"],
+      "synonyms": {
+        "azul": "blue",
+        "vermelho": "red",
+        "verde": "green"
+      }
+    },
+    "location": {
+      "description": "City where the student lives. The order of allowed is the one-hot encoding order.",
+      "type": "category",
+      "required": true,
+      "allowed": ["São Paulo", "Rio", "Curitiba"],
+      "synonyms": {
+        "sao paulo": "São Paulo",
+        "sp": "São Paulo",
+        "sao paulo - sp": "São Paulo",
+        "sao paulo, sp": "São Paulo",
+        "sao paulo/sp": "São Paulo",
+        "rio": "Rio",
+        "rj": "Rio",
+        "rio de janeiro": "Rio",
+        "rio de janeiro - rj": "Rio",
+        "rio de janeiro/rj": "Rio",
+        "rio, rj": "Rio",
+        "curitiba": "Curitiba",
+        "cwb": "Curitiba",
+        "curitiba pr": "Curitiba",
+        "curitiba - pr": "Curitiba",
+        "curitiba, pr": "Curitiba",
+        "curitiba/pr": "Curitiba"
+      }
+    },
+    "category": {
+      "description": "Label the model predicts. The order of allowed is the one-hot encoding order.",
+      "type": "category",
+      "required": true,
+      "allowed": ["premium", "medium", "basic"],
+      "synonyms": {
+        "medio": "medium",
+        "basico": "basic"
+      }
+    }
+  }
+}
