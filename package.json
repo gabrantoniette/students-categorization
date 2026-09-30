@@ -1,7 +1,7 @@
 {
   "name": "students-categorization",
   "version": "0.0.1",
-  "description": "JavaScript neural network built with TensorFlow.js that categorizes students into premium, medium and basic profiles based on age, favorite color and location.",
+  "description": "Study project from a dirty CSV to a neural network: a Python medallion pipeline (bronze, silver, gold) validates 10,000 fictional students against a data contract and encodes them for a TensorFlow.js model that categorizes them as premium, medium or basic.",
   "main": "index.js",
   "type": "module",
   "scripts": {
