@@ -2,10 +2,10 @@
   "name": "students-categorization",
   "version": "0.0.1",
   "description": "Study project from a dirty CSV to a neural network: a Python medallion pipeline (bronze, silver, gold) validates 10,000 fictional students against a data contract and encodes them for a TensorFlow.js model that categorizes them as premium, medium or basic.",
-  "main": "index.js",
+  "main": "categorization/index.js",
   "type": "module",
   "scripts": {
-    "start": "node --no-warnings --watch index.js",
+    "start": "node --no-warnings --watch categorization/index.js",
     "test": "node --test"
   },
   "repository": {
