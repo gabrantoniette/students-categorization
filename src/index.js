@@ -1,6 +1,6 @@
 import tf from '@tensorflow/tfjs-node';
-import tensor_people_normalized from '../src/gold/xs.json' with { type : 'json'};
-import tensor_labels from '../src/gold/ys.json' with { type : 'json'};
+import tensor_people_normalized from './gold/xs.json' with { type : 'json'};
+import tensor_labels from './gold/ys.json' with { type : 'json'};
 
 async function trainModel(inputXs, outputYs) {
     const model = tf.sequential()
