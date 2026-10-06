@@ -1,6 +1,8 @@
 import tf from '@tensorflow/tfjs-node';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import tensor_people_normalized from './gold/xs.json' with { type : 'json'};
 import tensor_labels from './gold/ys.json' with { type : 'json'};
+import { bestCategory, pendingStudents } from './categorize.js';
 
 async function trainModel(inputXs, outputYs) {
     const model = tf.sequential()
@@ -56,24 +58,31 @@ async function prediction (model, inputXs) {
 const label_names = ["premium", "medium", "basic"]; // Label order
 //const tensorLabels
 
-// Create the input (xs) and output (ys) tensors used to train the model
-const inputXs = tf.tensor2d(tensor_people_normalized)
-const outputYs = tf.tensor2d(tensor_labels)
+// New students come from `python -m src.upsert`, and their categories are kept in categorized.json
+const new_students_file = new URL('./gold/new_students.json', import.meta.url)
+const categorized_file = new URL('./gold/categorized.json', import.meta.url)
+const readList = (file) => existsSync(file) ? JSON.parse(readFileSync(file, 'utf-8')) : []
 
-const model = await trainModel(inputXs,outputYs)  
+const categorized = readList(categorized_file)
+const pending = pendingStudents(readList(new_students_file), categorized)
 
-const predictions = await prediction(
-    model, 
-    // pick up student number N of the dataset for example the following one:
-    inputXs.slice([4999, 0], [1, 7])
-    // studant 5000 from 0 iterating one line in seven columns
-    // .slice() is mandatory to iterate tensors.
-    // it does not work for arrays. 
-)
+if (pending.length === 0) {
+    console.log('No new students to categorize. Run python -m src.upsert to add them.')
+} else {
+    // Create the input (xs) and output (ys) tensors used to train the model
+    const inputXs = tf.tensor2d(tensor_people_normalized)
+    const outputYs = tf.tensor2d(tensor_labels)
 
-const results = predictions
-    .sort((a, b) => b.prob - a.prob)
-    .map(p => `${label_names[p.index]} (${(p.prob * 100).toFixed(2)}%)`)
-    .join('\n')
+    const model = await trainModel(inputXs,outputYs)
 
-console.log(results)
+    for (const student of pending) {
+        // a student is a [1, 7] tensor: the same seven numbers the training set has
+        const predictions = await prediction(model, tf.tensor2d([student.xs]))
+        const result = bestCategory(predictions.map(p => p.prob), label_names)
+        categorized.push({ id: student.id, name: student.name, created_at: student.created_at, ...result })
+        console.log(`${student.name}: ${result.category} (${(result.probability * 100).toFixed(2)}%)`)
+    }
+
+    writeFileSync(categorized_file, JSON.stringify(categorized, null, 2))
+    console.log(`${pending.length} new student${pending.length === 1 ? '' : 's'} categorized -> src/gold/categorized.json`)
+}
