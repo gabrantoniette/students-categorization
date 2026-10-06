@@ -1,5 +1,6 @@
 import re 
 import unicodedata as unicode
+from datetime import datetime, timezone
 
 # pre defined null_tokens to validate null values in data
 NULL_TOKENS = {
@@ -41,6 +42,16 @@ def parse_int(raw):
     return int(match.group(1)) if match else None
 
 
+def parse_datetime(raw):
+    try:
+        value = datetime.fromisoformat(raw.strip())
+    except ValueError:
+        return None
+    if value.tzinfo is None: # a time without an offset is read as UTC
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def _text(raw, spec):
     text = " ".join(unicode.normalize("NFC", raw).split())
     return text.title() if spec.get("case") == "title" else text
@@ -53,6 +64,7 @@ def _category(raw, spec):
 
 PARSERS = {
     "int": lambda raw, spec: parse_int(raw),
+    "datetime": lambda raw, spec: parse_datetime(raw),
     "text": _text,
     "category": _category,
 }

@@ -7,7 +7,7 @@
 ![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.22-FF6F00?logo=tensorflow&logoColor=white)
 ![License](https://img.shields.io/badge/license-ISC-blue)
 
-A study project that walks the full path of a classification problem, from a dirty CSV to a neural network: a Python medallion pipeline (bronze, silver, gold) cleans 10,000 rows of fictional students and encodes the 6,574 valid ones, and a [TensorFlow.js](https://www.tensorflow.org/js) network on Node.js learns to categorize them as **premium**, **medium** or **basic** from their age, favorite color and location.
+A study project that walks the full path of a classification problem, from a dirty CSV to a neural network: a Python medallion pipeline (bronze, silver, gold) cleans 10,000 rows of fictional students and encodes the 6,574 valid ones, and a [TensorFlow.js](https://www.tensorflow.org/js) network on Node.js learns to categorize them as **premium**, **medium** or **basic** from their age, favorite color and location. Students who sign up later go through the same contract, only the ones who signed up after the last student already in are added, and the network suggests a category for each of them.
 
 ## About the project
 
@@ -17,7 +17,7 @@ The dataset is fictional: a CSV with 10,000 rows of made-up students and the pro
 
 The pipeline runs in Python with [pandas](https://pandas.pydata.org) and stores each layer as Parquet. The neural network runs locally with [`@tensorflow/tfjs-node`](https://www.npmjs.com/package/@tensorflow/tfjs-node), which runs tensor operations on TensorFlow's native library, directly in Node.js.
 
-> **Status:** complete as a study project. The data pipeline writes the input and output vectors for 6,574 students, and `src/index.js` trains a network on them and predicts the category of one student. What it does not do is evaluate the model on students it has not seen, or predict a brand-new student. See the [roadmap](#roadmap) and the [known issues](#known-issues).
+> **Status:** complete as a study project. The data pipeline writes the input and output vectors for 6,574 students, `src/upsert.py` adds the students who sign up later, and `src/index.js` trains a network and categorizes each new student. What it does not do is evaluate the model on students it has not seen. See the [roadmap](#roadmap) and the [known issues](#known-issues).
 
 ## How it works
 
@@ -27,8 +27,9 @@ The pipeline runs in Python with [pandas](https://pandas.pydata.org) and stores 
 
 - **Format:** CSV, UTF-8, comma-delimited.
 - **Columns:** `name`, `age`, `color`, `location` and `category`, with no extra columns allowed (`strict_columns`).
-- **Per column:** the type (`text`, `int` or `category`), whether it is required, the valid range (age from 18 to 65), the allowed values and their synonyms (`azul` is `blue`, `sp` and `sao paulo - sp` are `São Paulo`, `cwb` is `Curitiba`, `medio` is `medium`).
+- **Per column:** the type (`text`, `int`, `category` or `datetime`), whether it is required, the valid range (age from 18 to 65), the allowed values and their synonyms (`azul` is `blue`, `sp` and `sao paulo - sp` are `São Paulo`, `cwb` is `Curitiba`, `medio` is `medium`).
 - **Dataset rules:** drop empty rows (`drop_empty_rows`) and drop duplicates (`deduplicate`).
+- **New students:** `label` names the column the model predicts (`category`), and `new_students` describes the students who sign up later: every column except the label, plus `created_at`, the time they signed up, in ISO 8601. It is stored in UTC, and a time without an offset is read as UTC.
 
 The order of each `allowed` list is also the order of the one-hot encoding in the gold layer.
 
@@ -79,9 +80,31 @@ Each input vector follows the order `[normalized_age, blue, red, green, São Pau
 
 The gold layer has 3,245 medium students (49.4%), 1,879 basic (28.6%) and 1,450 premium (22.1%). A model that always answers medium is right 49.4% of the time, so that is the accuracy the trained network has to beat.
 
+### New students: the upsert
+
+Students who sign up after the training set was built arrive in [`src/docs/students_new.csv`](src/docs/students_new.csv), with the time they signed up and without a category, which is what the model predicts. [`upsert`](src/process.py) takes them through the same contract and the same layers, in files of their own, so the training set never changes:
+
+| Layer | Output | What it does |
+| ----- | ------ | ------------ |
+| Bronze | `src/bronze/new_students.parquet` | Keeps every line of the file once, as it arrived the first time, with the same lineage columns |
+| Silver | `src/silver/new_students.parquet` | Applies the contract and adds only the students who signed up after the last one already in, each with an `id` |
+| Quarantine | `src/quarantine/new_students.csv` | Records every row that did not go in, with the reason |
+| Gold | `src/gold/new_students.json` | Encodes every new student like the training set: `id`, `name`, `created_at` and the 7 input numbers |
+
+The timestamp works as a watermark. A run reads the whole file, but only the students whose `created_at` is later than the most recent one already in silver are added, so running again on the same file adds nothing, and a file that keeps growing only contributes its new lines. Names repeat in the data (the 6,574 valid students share 1,996 names), so there is no key to update a student who is already in: a line identical to a student in silver is the same student sent again, and it does not go in.
+
+Every line that does not go in is recorded in the quarantine file once, with the raw values it arrived with, its lineage and a `reason`. A line that already went in on an earlier run is not recorded: it is in silver.
+
+| Reason | When |
+| ------ | ---- |
+| `invalid` | A field failed the contract. One `<column>_error` column per field says why, as in `students_rejected.parquet` |
+| `empty` | Every field is empty |
+| `duplicate` | The same student is already in silver from another line, or appears more than once among the lines being added, where the first one goes in |
+| `late` | A valid student who is not in silver yet but signed up before the most recent student already in, so the watermark keeps them out |
+
 ### The model
 
-[`src/index.js`](src/index.js) imports `src/gold/xs.json` and `src/gold/ys.json`, builds the input (`xs`) and output (`ys`) tensors with `tf.tensor2d`, trains a network on them and predicts the category of one student.
+[`src/index.js`](src/index.js) imports `src/gold/xs.json` and `src/gold/ys.json`, builds the input (`xs`) and output (`ys`) tensors with `tf.tensor2d`, trains a network on them and categorizes the new students.
 
 | Layer  | Units | Activation | What it does |
 | ------ | ----: | ---------- | ------------ |
@@ -90,7 +113,7 @@ The gold layer has 3,245 medium students (49.4%), 1,879 basic (28.6%) and 1,450 
 
 The model is compiled with the `adam` optimizer, the `categoricalCrossentropy` loss and the `accuracy` metric, and `model.fit` trains it for 100 epochs, shuffling the students on each one. The per-epoch logging callback is left commented out in the file.
 
-`prediction()` runs `model.predict` on a `[1, 7]` slice of the input tensor and returns each category with its probability. The script predicts the 5,000th student of the gold layer (`inputXs.slice([4999, 0], [1, 7])`) and prints the categories from the most to the least likely. To predict another student, change the row in `slice`.
+After training, the script categorizes every student in `src/gold/new_students.json` who is not in `src/gold/categorized.json` yet. `prediction()` runs `model.predict` on the student's `[1, 7]` tensor and returns each category with its probability, and [`bestCategory`](src/categorize.js) keeps the most likely one, its probability and the probability of each category. The results are appended to `src/gold/categorized.json`, so each student is categorized once. When there is no new student to categorize, the script says so and does not train.
 
 ## Technologies
 
@@ -134,13 +157,48 @@ silver  6574 valid | 3248 rejected | 178 empty or duplicate
 gold    xs (6574, 7) | ys (6574, 3)
 ```
 
+### New students
+
+After the pipeline, from the project root:
+
+```bash
+python -m src.upsert
+```
+
+[`src/upsert.py`](src/upsert.py) reads `src/docs/students_new.csv`, adds the students who signed up after the last one already in, and records the rest in `src/quarantine/new_students.csv`. On the sample file, the first run prints:
+
+```text
+bronze      10 rows in students_new.csv | 10 new
+silver      5 new students (first load) | 0 already in
+quarantine  3 invalid, 1 empty, 1 duplicate -> src/quarantine/new_students.csv
+gold        5 new students encoded for the model
+```
+
+The three invalid lines are a color that is not in the contract (`roxo`), a date in another format (`06/10/2026 09:15`) and an age out of range (`72`). Running it again on the same file adds nothing:
+
+```text
+bronze      10 rows in students_new.csv | 0 new
+silver      0 new students (signed up after 2026-10-06 11:02 UTC) | 5 already in
+quarantine  nothing new -> src/quarantine/new_students.csv
+gold        5 new students encoded for the model
+```
+
+With two more lines appended to the file, one student who signed up after the last student in and one who signed up before:
+
+```text
+bronze      12 rows in students_new.csv | 2 new
+silver      1 new student (signed up after 2026-10-06 11:02 UTC) | 5 already in
+quarantine  1 late -> src/quarantine/new_students.csv
+gold        6 new students encoded for the model
+```
+
 ### Model
 
 ```bash
 npm install
 ```
 
-Run the pipeline first, so `src/gold/` exists. To train the model and predict a student once:
+Run the pipeline and the upsert first, so `src/gold/` exists. To train the model and categorize the new students:
 
 ```bash
 node src/index.js
@@ -152,38 +210,55 @@ To run in watch mode (the script runs again every time a file is saved, and keep
 npm start
 ```
 
-Training takes a few minutes: 100 epochs over 6,574 students took about 4 minutes on WSL, with the project on the Windows disk. Then it prints the three categories of the predicted student, most likely first. Example:
+Training takes a few minutes: 100 epochs over 6,574 students took about 3 to 4 minutes on WSL. Then it prints the category of each new student, with its probability. After the first upsert of the sample file:
 
 ```text
-medium (54.43%)
-premium (45.01%)
-basic (0.56%)
+Mariana Souza: medium (78.81%)
+Rafael Lima: premium (67.93%)
+Beatriz Rocha: medium (76.01%)
+Thiago Alves: medium (78.78%)
+Camila Ferreira: basic (88.19%)
+5 new students categorized -> src/gold/categorized.json
 ```
 
-The weights start random, so the percentages change on every run. The real category of this student in the gold layer is `premium`, so this run got it wrong.
+After the second upsert, a new run categorizes only the student added since:
+
+```text
+Ana Ribeiro: medium (73.68%)
+1 new student categorized -> src/gold/categorized.json
+```
+
+`src/gold/categorized.json` keeps each student's `id`, `name`, `created_at`, `category`, `probability` and the probability of every category. The weights start random, so the percentages, and sometimes the category, change from one training to the next, and the model is not evaluated yet (see [Known issues](#known-issues)).
 
 Before the result, TensorFlow may print an informational message about CPU optimizations. It is normal and does not indicate an error. Setting `TF_CPP_MIN_LOG_LEVEL=2` hides it.
 
 ### Tests
 
-There are no tests yet, for either the model or the Python pipeline. The smoke test from when `index.js` only printed three sample tensors was removed, because it no longer matched the code.
+The upsert and the date parsing have tests with Python's `unittest`, and the functions that pick which students to categorize have tests with Node.js's built-in test runner. Run them from the project root, with the virtual environment active:
+
+```bash
+python -m unittest discover -s tests
+npm test
+```
+
+The rest of the pipeline and the model have no tests yet.
 
 ## Continuous integration
 
 Every pull request and every push to `main` runs the [CI workflow](.github/workflows/ci.yml) on GitHub Actions:
 
-- **Test:** installs the dependencies from `package-lock.json` (failing if a dependency has an install script that is not approved in `allowScripts`), verifies the npm registry signatures of the installed packages and runs `npm test`, which currently runs no tests (see [Known issues](#known-issues)).
+- **Test:** installs the dependencies from `package-lock.json` (failing if a dependency has an install script that is not approved in `allowScripts`), verifies the npm registry signatures of the installed packages and runs `npm test`, the Node.js tests in [`src/categorize.test.js`](src/categorize.test.js).
 - **Dependency review:** fails the pull request if it adds or updates a dependency with a known vulnerability.
 
-The workflow covers the Node.js side only; the Python pipeline does not run in CI yet.
+The workflow covers the Node.js side only; the Python tests run locally, and the Python pipeline does not run in CI yet.
 
 [Dependabot](.github/dependabot.yml) opens weekly pull requests to update npm packages and GitHub Actions; the Python dependencies in `requirements.txt` are not covered yet. GitHub's CodeQL code scanning looks for security issues in the code.
 
 ## Known issues
 
-- **`npm test` runs no tests.** There are no test files, so `npm test` reports `tests 0` and exits successfully, and the CI **Test** job passes without testing anything (see [Tests](#tests)).
 - **The model is not evaluated.** It is trained and asked to predict on the same students, and the script prints no accuracy. The probabilities say nothing about how it handles students it has not seen, and the 49.4% baseline has not been compared. Holding out part of the data (for example, `validationSplit: 0.2` in `model.fit`) is the next step.
-- **It predicts a student from the dataset, not a new one.** The input is a row of the gold layer. A new student would first have to be encoded the way `to_gold` does it.
+- **A late student stays out.** The watermark keeps out any student who signed up before the most recent one already in, even one who was never added: a row that arrived after newer ones, or one that failed the contract, was fixed and was sent again. Those rows are recorded in the quarantine file with the reason `late`, and adding them is a manual decision.
+- **The model is trained again on every run.** `src/index.js` does not save the model, so categorizing new students takes a full training, and a new student can get a different category than they would have in an earlier run. A student is categorized only once, so earlier results do not change.
 - **Training fails on Node.js 23 and later.** `@tensorflow/tfjs-node` 4.22 still calls `util.isNullOrUndefined`, which Node.js removed in version 23. `model.fit` throws `util_1.isNullOrUndefined is not a function` on Node.js 24, the version in `.nvmrc`, so `npm start` fails there; use Node.js 22 (`nvm use 22`). Defining the function again also works on Node.js 24: put this in its own module and import it before `@tensorflow/tfjs-node`.
 
   ```js
@@ -204,16 +279,23 @@ The workflow covers the Node.js side only; the Python pipeline does not run in C
 │   └── dependabot.yml      # Weekly dependency updates
 ├── src/
 │   ├── docs/
-│   │   └── students_raw.csv  # Source: 10,000 rows of fictional students, raw and messy
+│   │   ├── students_raw.csv  # Source: 10,000 rows of fictional students, raw and messy
+│   │   └── students_new.csv  # Students who signed up later, without a category, also messy
 │   ├── __init__.py         # Makes src a package, so python -m src.ingest can import src.process
-│   ├── contract.json       # Data contract: columns, types, ranges, allowed values and synonyms
-│   ├── cleaning.py         # Value cleaning: missing values, integers, text and synonyms
-│   ├── process.py          # Bronze, silver and gold layers
+│   ├── contract.json       # Data contract: columns, types, ranges, allowed values, synonyms and new students
+│   ├── cleaning.py         # Value cleaning: missing values, integers, dates, text and synonyms
+│   ├── process.py          # Bronze, silver and gold layers, and the upsert of new students
 │   ├── ingest.py           # Entry point: runs the three layers and prints the rows in each
-│   ├── bronze/             # Generated by ingest.py, not versioned
-│   ├── silver/             # Generated by ingest.py, not versioned
-│   ├── gold/               # Generated by ingest.py, not versioned: xs.json and ys.json
-│   └── index.js            # Loads the gold vectors, trains the model and predicts a student's category
+│   ├── upsert.py           # Entry point: adds the new students and prints what went where
+│   ├── bronze/             # Generated by ingest.py and upsert.py, not versioned
+│   ├── silver/             # Generated by ingest.py and upsert.py, not versioned
+│   ├── quarantine/         # Generated by upsert.py, not versioned: the new students who did not go in
+│   ├── gold/               # Generated, not versioned: xs.json, ys.json, new_students.json, categorized.json
+│   ├── categorize.js       # Which new students still need a category, and the most likely one
+│   ├── categorize.test.js  # Tests for categorize.js (npm test)
+│   └── index.js            # Loads the gold vectors, trains the model and categorizes the new students
+├── tests/
+│   └── test_upsert.py      # Tests for the upsert and the date parsing (python -m unittest discover -s tests)
 ├── requirements.txt        # Pinned Python dependencies
 ├── package.json            # Metadata, scripts and dependencies
 ├── package-lock.json       # Exact dependency versions
@@ -234,8 +316,9 @@ The workflow covers the Node.js side only; the Python pipeline does not run in C
 - [x] Define the neural network architecture
 - [x] Train the model
 - [x] Predict the category of a student from the dataset
+- [x] Add new students incrementally, by the time they signed up, and record the ones that do not go in
+- [x] Predict the category of new students
 - [ ] Evaluate the model on students it was not trained on and beat the 49.4% baseline
-- [ ] Predict the category of new students
 
 ## Contributing
 
@@ -243,7 +326,7 @@ This is a study project, but suggestions and improvements are welcome. Open an [
 
 1. Fork the repository
 2. Create a branch for your change: `git checkout -b feat/my-improvement`
-3. Make sure the pipeline runs (`python -m src.ingest`) and the model trains (`node src/index.js`)
+3. Make sure the tests pass (`python -m unittest discover -s tests` and `npm test`), the pipeline runs (`python -m src.ingest`, then `python -m src.upsert`) and the model trains (`node src/index.js`)
 4. Commit your changes: `git commit -m "feat: describe the improvement"`
 5. Push the branch: `git push origin feat/my-improvement`
 6. Open a pull request

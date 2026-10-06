@@ -1,6 +1,6 @@
 {
   "dataset": "students",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Students used to train the categorization model, one row per student. Column keys are the headers after normalize_headers.",
   "format": {
     "type": "csv",
@@ -10,6 +10,18 @@
   "strict_columns": true,
   "drop_empty_rows": true,
   "deduplicate": true,
+  "label": "category",
+  "new_students": {
+    "description": "Students who signed up after the training set was built. They have every column except the label, which the model predicts, plus the time they signed up. Only the ones who signed up after the last student already in are added.",
+    "timestamp": "created_at",
+    "columns": {
+      "created_at": {
+        "description": "When the student signed up, in ISO 8601. Stored in UTC; a time without an offset is read as UTC.",
+        "type": "datetime",
+        "required": true
+      }
+    }
+  },
   "columns": {
     "name": {
       "description": "Student full name.",

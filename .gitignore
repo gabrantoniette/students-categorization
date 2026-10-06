@@ -19,6 +19,8 @@ lakehouse/
 src/bronze/
 src/silver/
 src/gold/
+# New students that did not go in, written by python -m src.upsert
+src/quarantine/
 
 # Operating system
 .DS_Store
@@ -30,3 +32,4 @@ Thumbs.db
 
 # python cache
 src/__pycache__/
+tests/__pycache__/
