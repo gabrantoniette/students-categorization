@@ -7,6 +7,11 @@
 ![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.22-FF6F00?logo=tensorflow&logoColor=white)
 ![License](https://img.shields.io/badge/license-ISC-blue)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/gabrantoniette/gabrantoniette/main/assets/generated/languages/students-categorization-dark.svg">
+  <img src="https://raw.githubusercontent.com/gabrantoniette/gabrantoniette/main/assets/generated/languages/students-categorization-light.svg" alt="Languages in students-categorization, by share of code">
+</picture>
+
 A study project that walks the full path of a classification problem, from a dirty CSV to a neural network: a Python medallion pipeline (bronze, silver, gold) cleans 10,000 rows of fictional students and encodes the 6,574 valid ones, and a [TensorFlow.js](https://www.tensorflow.org/js) network on Node.js learns to categorize them as **premium**, **medium** or **basic** from their age, favorite color and location. Students who sign up later go through the same contract, only the ones who signed up after the last student already in are added, and the network suggests a category for each of them.
 
 ## About the project
