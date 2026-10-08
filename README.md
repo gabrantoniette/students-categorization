@@ -136,7 +136,7 @@ During installation, `@tensorflow/tfjs-node` runs a script that downloads the na
 
 For version 4.22 the prebuilt binary is only published for Linux x64. On Windows and macOS the script finds no binary and falls back to compiling it from source, which needs a C++ build toolchain and can fail. On Windows, running the project inside [WSL](https://learn.microsoft.com/windows/wsl/) avoids this. The Python pipeline is not affected.
 
-The approval is pinned to the installed version, and CI fails when a dependency has an install script that is not approved. After upgrading `@tensorflow/tfjs-node` (for example, in a Dependabot pull request), review the new version and run `npm install-scripts approve @tensorflow/tfjs-node` to update `package.json`.
+The approval is pinned to the installed version, and CI fails when a dependency has an install script that is not approved. After upgrading `@tensorflow/tfjs-node`, review the new version and run `npm install-scripts approve @tensorflow/tfjs-node` to update `package.json`.
 
 ## Installation and usage
 
@@ -257,7 +257,7 @@ Every pull request and every push to `main` runs the [CI workflow](.github/workf
 
 The workflow covers the Node.js side only; the Python tests run locally, and the Python pipeline does not run in CI yet.
 
-[Dependabot](.github/dependabot.yml) opens weekly pull requests to update npm packages and GitHub Actions; the Python dependencies in `requirements.txt` are not covered yet. GitHub's CodeQL code scanning looks for security issues in the code.
+GitHub's CodeQL code scanning looks for security issues in the code.
 
 ## Known issues
 
@@ -279,9 +279,8 @@ The workflow covers the Node.js side only; the Python tests run locally, and the
 ```text
 .
 ├── .github/
-│   ├── workflows/
-│   │   └── ci.yml          # CI pipeline: install, signature check, tests and dependency review
-│   └── dependabot.yml      # Weekly dependency updates
+│   └── workflows/
+│       └── ci.yml          # CI pipeline: install, signature check, tests and dependency review
 ├── src/
 │   ├── docs/
 │   │   ├── students_raw.csv  # Source: 10,000 rows of fictional students, raw and messy
