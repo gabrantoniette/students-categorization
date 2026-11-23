@@ -343,7 +343,7 @@ Please do not report security problems in public issues. See the [security polic
 
 ## License
 
-Distributed under the ISC License. See the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Author
 
