@@ -21,7 +21,7 @@
     "one-hot-encoding"
   ],
   "author": "Gabriel Antoniette (https://github.com/gabrantoniette)",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/gabrantoniette/students-categorization/issues"
   },
